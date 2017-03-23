@@ -4,6 +4,7 @@ const browserSync = require('browser-sync').create();
 const gutil = require('gulp-util');
 const rename = require('gulp-rename');
 const plumber = require('gulp-plumber');
+const bower = require('gulp-bower');
 
 
 //css
@@ -21,24 +22,39 @@ const source = require('vinyl-source-stream');
 //images
 const imagemin = require('gulp-image');
 
+const config = {
+    bowerDir: './bower_components'
+}
 
-gulp.task('default', ['sass', 'babel', 'imagemin'], () => {
+
+gulp.task('default', ['bower', 'sass', 'babel', 'imagemin'], () => {
     browserSync.init({
         server: {
-            baseDir: "./"
+            baseDir: "./dist"
         }
     });
-    gulp.watch("./*.html").on('change', browserSync.reload);
+    gulp.watch("./dist/userverifier/*.html").on('change', browserSync.reload);
+    gulp.watch("./dist/backoffice/*.html").on('change', browserSync.reload);
     gulp.watch('./src/scss/**/*.scss', ['sass']);
     gulp.watch('./src/js/*.js', ['babel']);
     gulp.watch('./src/images/**/*.*', ['imagemin']);
     gulp.watch('./src/images/sprite/*.png', ['sprite']);
 });
 
+gulp.task('bower', () => {
+    return bower()
+        .pipe(gulp.dest(config.bowerDir))
+})
+
 gulp.task('sass', () => {
     const plugins = [autoprefixer({browsers: ['last 2 versions']}), cssnano()];
     return gulp.src('./src/scss/**/*.scss')
-        .pipe(sass().on('error', sass.logError))
+        .pipe(sass({
+            includePaths: [
+                config.bowerDir + '/bootstrap-sass-official/assets/stylesheets',
+                config.bowerDir + '/fontawesome/scss',
+            ]
+        }).on('error', sass.logError))
         .pipe(postcss(plugins))
         .pipe(rename({suffix: '.min'}))
         .pipe(gulp.dest('./dist/css'))
@@ -55,7 +71,7 @@ gulp.task('imagemin', function () {
 
 gulp.task('babel', function() {
     browserify({
-        entries: ['./src/js/main.js', './src/js/main2.js'],
+        entries: ['./src/js/vendor/jquery-1.11.1.min.js', './src/js/bootstrap.js', '../js/vendor/modernizr-2.8.3.min.js'],
         debug: true
     })
     .transform(babelify, { presets: ['env'] })
